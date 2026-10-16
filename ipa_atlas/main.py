@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from .catalog import SOUNDS, DIACRITIC_DATA, SUPRA_DATA, TONES, SOURCE, EJECTIVE_MARKER, examples_for
 from .analyze import tokenize, describe_sequence, compare
 from .english import lookup_english
-from .bangla_lexicon import stats as bangla_stats, search as bangla_search
+from .bangla_lexicon import stats as bangla_stats, search as bangla_search, examples_for_sound as bangla_phone_examples
 
 app=FastAPI(title="IPA Atlas API",version="1.0.0",description="Educational IPA chart reference, articulatory explanation, IPA structural parser, example catalog, and optional CMUdict lookup. Not a phoneme inventory inference model.")
 STATIC=Path(__file__).parent/'static'
@@ -19,6 +19,14 @@ class AnalysisRequest(BaseModel):
 class CompareRequest(BaseModel):
  a:str=Field(min_length=1,max_length=15)
  b:str=Field(min_length=1,max_length=15)
+
+def combined_examples(symbol: str, language: str | None = None):
+    """Pedagogical examples plus individually attributed Bangla WikiPron records."""
+    output = list(examples_for(symbol, language))
+    if language is None or language.casefold() in ("bangla", "bengali"):
+        output.extend(bangla_phone_examples(symbol, limit=8))
+    return output
+
 
 @app.get('/',include_in_schema=False)
 def home():return FileResponse(str(STATIC/'index.html'))
@@ -33,17 +41,17 @@ def list_sounds(category:str|None=None,place:str|None=None,manner:str|None=None,
  return {'total':len(vals),'offset':offset,'limit':limit,'items':[v.to_dict() for v in vals[offset:offset+limit]]}
 @app.get('/v1/sounds/describe')
 def describe(symbol:str=Query(min_length=1,max_length=32)):
- try:return {**describe_sequence(symbol),'examples':examples_for(symbol)}
+ try:return {**describe_sequence(symbol),'examples':combined_examples(symbol)}
  except ValueError as e:raise HTTPException(404,str(e))
 @app.get('/v1/sounds/{symbol}')
 def describe_path(symbol:str):
- try:return {**describe_sequence(symbol),'examples':examples_for(symbol)}
+ try:return {**describe_sequence(symbol),'examples':combined_examples(symbol)}
  except ValueError as e:raise HTTPException(404,str(e))
 @app.get('/v1/examples')
 def examples(symbol:str=Query(min_length=1,max_length=32),language:str|None=None):
  try:desc=describe_sequence(symbol)
  except ValueError as e:raise HTTPException(404,str(e))
- return {'symbol':symbol,'name':desc['name'],'examples':examples_for(symbol,language),'example_policy':'Constructed drills are labelled, not represented as real words; lexical examples are illustrative broad transcriptions that require dialect-specific verification.'}
+ return {'symbol':symbol,'name':desc['name'],'examples':combined_examples(symbol,language),'example_policy':'Constructed drills are labelled, not represented as real words; lexical examples are illustrative broad transcriptions that require dialect-specific verification.'}
 @app.get('/v1/diacritics')
 def diacritics():return {'items':list(DIACRITIC_DATA.values()),'count':len(DIACRITIC_DATA)}
 @app.get('/v1/prosody')
