@@ -1,0 +1,18 @@
+{
+  "dataset": "IPA Atlas - Marathi WikiPron starter v1",
+  "created_utc_date": "2026-10-16",
+  "type": "research-provenance-pending-phonetic-review",
+  "language": "Marathi",
+  "iso6393": "mar",
+  "records": 187,
+  "unique_spellings": 152,
+  "source": "WikiPron (Marathi Devanagari) from English Wiktionary",
+  "upstream_repo": "https://github.com/CUNY-CL/wikipron",
+  "broad": {"filename": "mar_deva_broad.tsv", "source_rows_in_upstream": 4872, "starter_rows": 162, "git_blob_sha1": "ec0afc66ff7966bac5e4dffc20040e407b8e0ab9"},
+  "narrow": {"filename": "mar_deva_narrow.tsv", "source_rows_in_upstream": 1278, "starter_rows": 25, "git_blob_sha1": "e9bc77df49e99f7b1b35227f83356d714b67e0b2"},
+  "academic_reference": "https://aclanthology.org/2020.lrec-1.521/",
+  "licensing_note": "Wiktionary-derived pronunciations; check and apply upstream CC BY-SA obligations; WikiPron source code licence is separate.",
+  "verification": "Direct source extraction; not independently speaker/expert verified; editorial glosses not checked against source",
+  "audio": false,
+  "speaker_dialect_recorded": false
+}
