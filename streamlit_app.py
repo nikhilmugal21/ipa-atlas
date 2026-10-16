@@ -5,7 +5,9 @@ FastAPI/uvicorn subprocess. Run `streamlit run streamlit_app.py` from repo root.
 """
 from __future__ import annotations
 
+import csv
 import json
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
@@ -34,6 +36,31 @@ CATEGORY_NAMES = {
 }
 LANGUAGES = ["Hindi", "Marathi", "Bangla", "Malayalam", "Gujarati", "Tamil", "English"]
 
+# Marathi lexical transcriptions mined from WikiPron/Wiktionary; not speaker-verified.
+MARATHI_CSV = Path(__file__).resolve().parent / "data" / "marathi_examples.csv"
+
+
+@st.cache_data(show_spinner=False)
+def marathi_records() -> list[dict[str, str]]:
+    if not MARATHI_CSV.is_file():
+        return []
+    with MARATHI_CSV.open(encoding="utf-8-sig", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def marathi_phone_examples(symbol: str, limit: int = 8) -> list[dict[str, Any]]:
+    rows = [row for row in marathi_records()
+            if symbol in row.get("ipa_tokens", "").split("|")]
+    rows.sort(key=lambda row: (row["transcription_level"] != "broad",
+                               len(row["orthography"]), row["orthography"]))
+    return [{
+        "language": "Marathi", "word": row["orthography"], "ipa": row["ipa"],
+        "meaning": row["meaning_en"], "type": "source_derived_lexical_example",
+        "verification": row["verification_status"],
+        "notes": f"{row['transcription_level']} · WikiPron/Wiktionary · dialect unspecified",
+        "source_url": row["wiktionary_entry_url"],
+    } for row in rows[:limit]]
+
 
 def render_json(data: Any, filename: str) -> None:
     with st.expander("View structured analysis (JSON)"):
@@ -57,6 +84,8 @@ def display_example(ex: dict[str, Any]) -> None:
             st.caption("Pronunciation may vary by speaker, dialect or source; verify before research use.")
         if ex.get("notes"):
             st.caption(ex["notes"])
+        if ex.get("source_url"):
+            st.markdown(f"[View lexical source]({ex['source_url']})")
 
 
 def display_description(symbol: str, example_language: str | None = None) -> None:
@@ -87,6 +116,8 @@ def display_description(symbol: str, example_language: str | None = None) -> Non
 
     st.markdown("#### Examples and pronunciation exercises")
     items = examples_for(symbol, example_language)
+    if example_language in (None, "Marathi"):
+        items = [*items, *marathi_phone_examples(symbol)]
     real = [x for x in items if x["type"] != "constructed_articulatory_drill"]
     drills = [x for x in items if x["type"] == "constructed_articulatory_drill"]
     if not real:
@@ -236,6 +267,40 @@ def language_page() -> None:
     st.title("Examples by Language")
     st.write("Browse selected pedagogical examples. These are not exhaustive or verified phonetic dictionaries.")
     selected = st.selectbox("Language", LANGUAGES)
+    if selected == "Marathi":
+        rows = marathi_records()
+        if not rows:
+            st.warning("Marathi dataset missing: expected data/marathi_examples.csv.")
+            return
+        unique_words = len({row["orthography"] for row in rows})
+        st.success(f"Loaded {len(rows)} source-derived pronunciation records for {unique_words} Marathi spellings.")
+        st.caption("WikiPron/Wiktionary extractions, not independently speaker-verified. English glosses are editorial.")
+        word_query = st.text_input("Search word, IPA or English meaning", key="marathi-word")
+        col1, col2 = st.columns(2)
+        with col1:
+            level = st.selectbox("Transcription", ["Both", "broad", "narrow"], key="marathi-level")
+        with col2:
+            phones = sorted({tok for row in rows for tok in row["ipa_tokens"].split("|") if tok})
+            phone = st.selectbox("IPA phone", ["All phones", *phones], key="marathi-phone")
+        matches = [row for row in rows
+                   if (not word_query or word_query.casefold() in
+                       (row["orthography"] + " " + row["ipa"] + " " + row["meaning_en"]).casefold())
+                   and (level == "Both" or row["transcription_level"] == level)
+                   and (phone == "All phones" or phone in row["ipa_tokens"].split("|"))]
+        st.caption(f"Showing {len(matches)} source-derived records")
+        st.dataframe([{
+            "Marathi": row["orthography"], "IPA": row["ipa"],
+            "Type": row["transcription_level"],
+            "English gloss (unverified)": row["meaning_en"],
+            "Source": row["wiktionary_entry_url"]
+        } for row in matches], hide_index=True, use_container_width=True)
+        if matches:
+            chosen = st.selectbox("Inspect source", list(dict.fromkeys(row["orthography"] for row in matches)))
+            for row in [r for r in matches if r["orthography"] == chosen]:
+                st.write(f"**{row['orthography']}** · `{row['ipa']}` · {row['transcription_level']}")
+                st.caption(f"Original IPA segment sequence: {row['source_segmented_ipa']}")
+                st.markdown(f"[Wiktionary entry]({row['wiktionary_entry_url']}) · [WikiPron source]({row['source_file_url']})")
+        return
     matches = []
     for symbol, entries in EXAMPLES.items():
         for ex in entries:
