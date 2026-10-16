@@ -1,4 +1,25 @@
-# Marathi IPA Research Starter Dataset — add-on for IPA Atlas
+# IPA Atlas — Multilingual Phonetics Explorer
+
+This repository provides the Streamlit IPA Atlas explorer and its reusable FastAPI backend. It includes IPA sound descriptions, transcription inspection, PHOIBLE inventory support, and separately source-attributed language datasets.
+
+## Bangla WikiPron pronunciation integration
+
+The **Bangla** selection under **Language examples** now loads four Bengali-script WikiPron/Wiktionary files (28,938 source records across two source dialect-filter collections):
+
+- **Dhaka:** 7,277 broad entries and 6,949 narrow entries.
+- **Rarh:** 7,525 broad entries and 7,187 narrow entries.
+
+Features: Bengali spelling and IPA search, exact IPA segment search, dialect/level filters, paginated table, per-word Wiktionary citations, and CSV export. The **Explore sounds** tab also shows sourced Bangla examples.
+
+For the separate FastAPI server, see \`/v1/datasets/bangla\` (filtered/paginated lexical lookup), \`/v1/datasets/bangla/stats\` (coverage), and \`/v1/examples?symbol=ŋ&language=Bangla\` (sound examples).
+
+**Research caveats:** the files were scraped from community-edited Wiktionary and are **not expert-verified recordings**. WikiPron dialect filters can include originally unlabeled pronunciations; the labels are not specific speaker provenance. WikiPron does not provide English meanings. No audio or invented translations are supplied.
+
+**Attribution and licensing:** the four source TSVs are kept in \`data/bangla_wikipron/\`. See [their source and CC BY-SA attribution notice](data/bangla_wikipron/ATTRIBUTION.md). The Wiktionary-derived *data* are separately licensed from the application code.
+
+---
+
+## Marathi IPA Research Starter Dataset — earlier add-on
 
 **Version:** 1.0, 16 October 2026 | **Status:** source-extracted, not yet expert-verified
 
@@ -60,8 +81,8 @@ PHOIBLE documents **phonemic inventories** reported by studies. WikiPron supplie
 
 ## Research citation and reuse
 
-**Lee, Jackson L. et al. (2020).** “Massively Multilingual Pronunciation Modeling with WikiPron.” *Proceedings of LREC 2020*, 4223–4228. https://aclanthology.org/2020.lrec-1.521/.
+**Lee, Jackson L. et al. (2020).** “Massively multilingual pronunciation mining with WikiPron.” *Proceedings of LREC 2020*, 4223–4228. https://aclanthology.org/2020.lrec-1.521/.
 
-**Primary community content:** English Wiktionary pronunciation entries; https://en.wiktionary.org/wiki/Wiktionary:Copyrights. The source WikiPron software is Apache-2.0, but **Wiktionary-derived data has separate share-alike licensing** (typically CC BY-SA 3.0). Attribution, share-alike and edition/history requirements should be maintained if you publish these records. Check the exact upstream licensing before public redistribution; do not assume your existing repository's MIT licence covers the data. See `MARATHI_SOURCES_AND_REVIEW.md`.
+**Primary community content:** English Wiktionary pronunciation entries; https://en.wiktionary.org/wiki/Wiktionary:Copyrights. The source WikiPron software is Apache-2.0, but **Wiktionary-derived data has separate share-alike licensing** (currently CC BY-SA 4.0 under English Wiktionary text licensing). Attribution, share-alike and edition/history requirements should be maintained if you publish these records. Check the exact upstream licensing before public redistribution; do not assume your existing repository's MIT licence covers the data. See `MARATHI_SOURCES_AND_REVIEW.md`.
 
 C-DAC also documents an IPA/Pronunciation Lexicon initiative involving Marathi and instrumental verification (EPG/EGG); we did **not** download or use its lexicon and do not claim to have verified WikiPron entries with that project. https://cdac.gov.in/index.aspx?id=mc_s_IPA_PLS.
