@@ -22,6 +22,8 @@ from ipa_atlas.catalog import (
     examples_for,
 )
 from ipa_atlas.analyze import compare, describe_sequence, tokenize
+from ipa_atlas.bangla_ui import render_bangla_dataset
+from ipa_atlas.bangla_lexicon import examples_for_sound as bangla_phone_examples
 from ipa_atlas.english import lookup_english
 from ipa_atlas.inventories import status as inventories_status, list_inventories, inventory_items, attestations
 
@@ -74,7 +76,9 @@ def render_json(data: Any, filename: str) -> None:
 def display_example(ex: dict[str, Any]) -> None:
     kind = ex.get("type", "")
     title = ex.get("word") or ex.get("ipa") or "Pronunciation exercise"
-    label = "Constructed practice sequence" if kind == "constructed_articulatory_drill" else "Illustrative example"
+    label = ("Constructed practice sequence" if kind == "constructed_articulatory_drill"
+             else "Source-derived WikiPron example" if kind == "source_derived_lexical_example"
+             else "Illustrative example")
     with st.container(border=True):
         st.markdown(f"**{title}** · `{ex.get('ipa', '')}`")
         st.caption(f"{ex.get('language','Unspecified')} · {label}" + (f" · {ex['meaning']}" if ex.get('meaning') else ""))
@@ -118,6 +122,8 @@ def display_description(symbol: str, example_language: str | None = None) -> Non
     items = examples_for(symbol, example_language)
     if example_language in (None, "Marathi"):
         items = [*items, *marathi_phone_examples(symbol)]
+    if example_language in (None, "Bangla"):
+        items = [*items, *bangla_phone_examples(symbol)]
     real = [x for x in items if x["type"] != "constructed_articulatory_drill"]
     drills = [x for x in items if x["type"] == "constructed_articulatory_drill"]
     if not real:
@@ -267,6 +273,9 @@ def language_page() -> None:
     st.title("Examples by Language")
     st.write("Browse selected pedagogical examples. These are not exhaustive or verified phonetic dictionaries.")
     selected = st.selectbox("Language", LANGUAGES)
+    if selected == "Bangla":
+        render_bangla_dataset()
+        return
     if selected == "Marathi":
         rows = marathi_records()
         if not rows:
