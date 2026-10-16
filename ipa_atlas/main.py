@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from .catalog import SOUNDS, DIACRITIC_DATA, SUPRA_DATA, TONES, SOURCE, EJECTIVE_MARKER, examples_for
 from .analyze import tokenize, describe_sequence, compare
 from .english import lookup_english
+from .bangla_lexicon import stats as bangla_stats, search as bangla_search
 
 app=FastAPI(title="IPA Atlas API",version="1.0.0",description="Educational IPA chart reference, articulatory explanation, IPA structural parser, example catalog, and optional CMUdict lookup. Not a phoneme inventory inference model.")
 STATIC=Path(__file__).parent/'static'
@@ -86,3 +87,29 @@ def attest(symbol:str=Query(min_length=1,max_length=32),language:str|None=None,l
 def example_languages():
  return {'curated_examples_for':['English','Hindi','Marathi','Bangla','Malayalam','Gujarati','Tamil','French','Spanish','Turkish','Italian','Hausa'],
          'note':'Examples are selected educational illustrations, not comprehensive language-wide lexicons or dialect verified phonetic recordings.'}
+
+@app.get('/v1/datasets/bangla/stats')
+def bangla_dataset_stats():
+    """Coverage of WikiPron-derived Bangla data grouped by dialect filter and level."""
+    return bangla_stats()
+
+
+@app.get('/v1/datasets/bangla')
+def bangla_dataset_entries(
+    q: str = Query("", max_length=150),
+    dialect: str | None = Query(None, pattern="^(Dhaka|Rarh)$"),
+    level: str | None = Query(None, pattern="^(broad|narrow)$"),
+    phone: str | None = Query(None, max_length=24),
+    limit: int = Query(100, ge=1, le=250),
+    offset: int = Query(0, ge=0),
+):
+    """Exact-segment search, with pagination and original Wiktionary source links."""
+    items = bangla_search(q=q, dialect=dialect, level=level, phone=phone)
+    return {
+        "total": len(items),
+        "offset": offset,
+        "limit": limit,
+        "items": items[offset:offset+limit],
+        "provenance": "WikiPron-mined Wiktionary data, NOT speaker-verified",
+        "dialect_caveat": "Unlabeled Wiktionary entries may occur in both dialect-filtered files.",
+    }
