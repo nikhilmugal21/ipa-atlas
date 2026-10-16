@@ -5,7 +5,7 @@ A recorded PHOIBLE phoneme is *not* a claim about a realised phone in a word.
 from __future__ import annotations
 from pathlib import Path
 import os,sqlite3
-DEFAULT_PATH=Path(__file__).resolve().parent.parent/'data'/'phoible.sqlite'
+DEFAULT_PATH=Path(__file__).resolve().parent.parent/'phoible.sqlite'
 
 def db_path():return Path(os.environ.get('IPA_ATLAS_PHOIBLE_DB',str(DEFAULT_PATH)))
 
