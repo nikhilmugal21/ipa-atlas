@@ -1,0 +1,2 @@
+# OPTIONAL CMU US English lexicon lookup (wrapper may impose GPL obligations)
+cmudict>=1.0,<2

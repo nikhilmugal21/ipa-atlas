@@ -1,0 +1,29 @@
+### Core chart
+GET http://127.0.0.1:8000/v1/chart
+
+### Palatal nasal
+GET http://127.0.0.1:8000/v1/sounds/describe?symbol=ɲ
+
+### Modified Hindi dental aspirated plosive
+GET http://127.0.0.1:8000/v1/sounds/describe?symbol=t̪ʰ
+
+### Hindi examples for aspirated bilabial stop
+GET http://127.0.0.1:8000/v1/examples?symbol=pʰ&language=Hindi
+
+### Compare alveolar/retroflex plosives
+POST http://127.0.0.1:8000/v1/compare
+Content-Type: application/json
+
+{"a":"t","b":"ʈ"}
+
+### IPA parse
+POST http://127.0.0.1:8000/v1/analyze
+Content-Type: application/json
+
+{"transcription":"[t̪ʰaːmiɻ]"}
+
+### Optional US English word lookup
+GET http://127.0.0.1:8000/v1/transcribe/english/linguistics
+
+### Optional PHOIBLE
+GET http://127.0.0.1:8000/v1/inventories/status
