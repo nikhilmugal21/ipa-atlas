@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from .catalog import SOUNDS, DIACRITIC_DATA, SUPRA_DATA, TONES, SOURCE, EJECTIVE_MARKER, examples_for
 from .analyze import tokenize, describe_sequence, compare
 from .english import lookup_english
+from .bangla_lexicon import stats as bangla_stats, search as bangla_search, examples_for_sound as bangla_phone_examples
 
 app=FastAPI(title="IPA Atlas API",version="1.0.0",description="Educational IPA chart reference, articulatory explanation, IPA structural parser, example catalog, and optional CMUdict lookup. Not a phoneme inventory inference model.")
 STATIC=Path(__file__).parent/'static'
@@ -18,6 +19,14 @@ class AnalysisRequest(BaseModel):
 class CompareRequest(BaseModel):
  a:str=Field(min_length=1,max_length=15)
  b:str=Field(min_length=1,max_length=15)
+
+def combined_examples(symbol: str, language: str | None = None):
+    """Pedagogical examples plus individually attributed Bangla WikiPron records."""
+    output = list(examples_for(symbol, language))
+    if language is None or language.casefold() in ("bangla", "bengali"):
+        output.extend(bangla_phone_examples(symbol, limit=8))
+    return output
+
 
 @app.get('/',include_in_schema=False)
 def home():return FileResponse(str(STATIC/'index.html'))
@@ -32,17 +41,17 @@ def list_sounds(category:str|None=None,place:str|None=None,manner:str|None=None,
  return {'total':len(vals),'offset':offset,'limit':limit,'items':[v.to_dict() for v in vals[offset:offset+limit]]}
 @app.get('/v1/sounds/describe')
 def describe(symbol:str=Query(min_length=1,max_length=32)):
- try:return {**describe_sequence(symbol),'examples':examples_for(symbol)}
+ try:return {**describe_sequence(symbol),'examples':combined_examples(symbol)}
  except ValueError as e:raise HTTPException(404,str(e))
 @app.get('/v1/sounds/{symbol}')
 def describe_path(symbol:str):
- try:return {**describe_sequence(symbol),'examples':examples_for(symbol)}
+ try:return {**describe_sequence(symbol),'examples':combined_examples(symbol)}
  except ValueError as e:raise HTTPException(404,str(e))
 @app.get('/v1/examples')
 def examples(symbol:str=Query(min_length=1,max_length=32),language:str|None=None):
  try:desc=describe_sequence(symbol)
  except ValueError as e:raise HTTPException(404,str(e))
- return {'symbol':symbol,'name':desc['name'],'examples':examples_for(symbol,language),'example_policy':'Constructed drills are labelled, not represented as real words; lexical examples are illustrative broad transcriptions that require dialect-specific verification.'}
+ return {'symbol':symbol,'name':desc['name'],'examples':combined_examples(symbol,language),'example_policy':'Constructed drills are labelled, not represented as real words; lexical examples are illustrative broad transcriptions that require dialect-specific verification.'}
 @app.get('/v1/diacritics')
 def diacritics():return {'items':list(DIACRITIC_DATA.values()),'count':len(DIACRITIC_DATA)}
 @app.get('/v1/prosody')
@@ -86,3 +95,29 @@ def attest(symbol:str=Query(min_length=1,max_length=32),language:str|None=None,l
 def example_languages():
  return {'curated_examples_for':['English','Hindi','Marathi','Bangla','Malayalam','Gujarati','Tamil','French','Spanish','Turkish','Italian','Hausa'],
          'note':'Examples are selected educational illustrations, not comprehensive language-wide lexicons or dialect verified phonetic recordings.'}
+
+@app.get('/v1/datasets/bangla/stats')
+def bangla_dataset_stats():
+    """Coverage of WikiPron-derived Bangla data grouped by dialect filter and level."""
+    return bangla_stats()
+
+
+@app.get('/v1/datasets/bangla')
+def bangla_dataset_entries(
+    q: str = Query("", max_length=150),
+    dialect: str | None = Query(None, pattern="^(Dhaka|Rarh)$"),
+    level: str | None = Query(None, pattern="^(broad|narrow)$"),
+    phone: str | None = Query(None, max_length=24),
+    limit: int = Query(100, ge=1, le=250),
+    offset: int = Query(0, ge=0),
+):
+    """Exact-segment search, with pagination and original Wiktionary source links."""
+    items = bangla_search(q=q, dialect=dialect, level=level, phone=phone)
+    return {
+        "total": len(items),
+        "offset": offset,
+        "limit": limit,
+        "items": items[offset:offset+limit],
+        "provenance": "WikiPron-mined Wiktionary data, NOT speaker-verified",
+        "dialect_caveat": "Unlabeled Wiktionary entries may occur in both dialect-filtered files.",
+    }
